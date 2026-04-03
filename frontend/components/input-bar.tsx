@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type DragEvent,
@@ -26,6 +27,7 @@ interface InputBarProps {
   onFileRemove: (index: number) => void;
   files: File[];
   disabled: boolean;
+  initialText?: string;
 }
 
 export function InputBar({
@@ -34,8 +36,9 @@ export function InputBar({
   onFileRemove,
   files,
   disabled,
+  initialText,
 }: InputBarProps) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText ?? "");
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -109,6 +112,13 @@ export function InputBar({
       el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
     }
   }, []);
+
+  // Auto-resize textarea when initialText is provided
+  useEffect(() => {
+    if (initialText) {
+      handleTextareaInput();
+    }
+  }, [initialText, handleTextareaInput]);
 
   return (
     <div

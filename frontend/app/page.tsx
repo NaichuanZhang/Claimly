@@ -1,6 +1,14 @@
 import { Chat } from "@/components/chat";
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const initialPrompt =
+    typeof params.prompt === "string" ? params.prompt : undefined;
+
   return (
     <main className="flex min-h-screen flex-col items-center">
       <div className="w-full max-w-3xl flex flex-col min-h-screen">
@@ -20,7 +28,7 @@ export default function Home() {
         </header>
 
         {/* Chat */}
-        <Chat />
+        <Chat initialPrompt={initialPrompt} />
       </div>
     </main>
   );

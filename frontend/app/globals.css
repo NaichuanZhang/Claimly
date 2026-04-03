@@ -171,6 +171,30 @@ body::before {
   background: var(--color-teal-glow) !important;
 }
 
+/* Landing upload zone */
+.landing-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  border: 2px dashed var(--color-border);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.landing-upload-zone:hover {
+  border-color: var(--color-teal);
+  background: var(--color-teal-glow);
+}
+
+.landing-upload-zone-active {
+  border-color: var(--color-teal);
+  background: var(--color-teal-glow);
+  border-style: solid;
+}
+
 /* Message entrance */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(6px); }
