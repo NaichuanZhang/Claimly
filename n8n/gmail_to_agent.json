@@ -1,0 +1,190 @@
+{
+  "name": "Gmail to Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "event": "messageReceived",
+        "simple": true,
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "id": "gmail-trigger",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [460, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CONFIGURE_ME",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "message_id",
+              "name": "message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "subject",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "sender",
+              "name": "sender",
+              "value": "={{ $json.from }}",
+              "type": "string"
+            },
+            {
+              "id": "date",
+              "name": "date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "body_text",
+              "name": "body_text",
+              "value": "={{ $json.textPlain || $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "body_html",
+              "name": "body_html",
+              "value": "={{ $json.textHtml || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "labels",
+              "name": "labels",
+              "value": "={{ $json.labelIds }}",
+              "type": "array"
+            },
+            {
+              "id": "thread_id",
+              "name": "thread_id",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false
+      },
+      "id": "set-fields",
+      "name": "Format Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8100/api/v1/emails",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "http-post",
+      "name": "POST to Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [940, 300],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "content": "## Setup Instructions\n\n1. **Configure Gmail OAuth2 credentials:**\n   - Click the Gmail Trigger node\n   - Click \"Create New Credential\"\n   - Follow the OAuth2 flow to authorize your Gmail account\n   - Requires a Google Cloud project with Gmail API enabled\n\n2. **Adjust filters (optional):**\n   - By default, only unread emails trigger the workflow\n   - Add label filters or search queries in the Gmail Trigger's Filters section\n   - Example search: `from:insurance@example.com` or `subject:claim`",
+        "height": 310,
+        "width": 380,
+        "color": 4
+      },
+      "id": "sticky-setup",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, -60]
+    },
+    {
+      "parameters": {
+        "content": "## Endpoint Configuration\n\nThe HTTP POST node sends email data to:\n`http://localhost:8100/api/v1/emails`\n\n**Change the URL** in the \"POST to Agent\" node if your endpoint is different.\n\n**If n8n runs in Docker**, use:\n`http://host.docker.internal:8100/api/v1/emails`\ninstead of `localhost`.",
+        "height": 250,
+        "width": 340,
+        "color": 6
+      },
+      "id": "sticky-endpoint",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [840, -60]
+    },
+    {
+      "parameters": {
+        "content": "## Email Data Shape\n\nThe POST body looks like:\n```json\n{\n  \"message_id\": \"abc123\",\n  \"subject\": \"Your claim update\",\n  \"sender\": \"insurance@co.com\",\n  \"date\": \"2026-04-03T10:00:00Z\",\n  \"body_text\": \"Plain text body...\",\n  \"body_html\": \"<p>HTML body...</p>\",\n  \"labels\": [\"INBOX\", \"UNREAD\"],\n  \"thread_id\": \"thread_xyz\"\n}\n```",
+        "height": 310,
+        "width": 340,
+        "color": 3
+      },
+      "id": "sticky-schema",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, 500]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email": {
+      "main": [
+        [
+          {
+            "node": "POST to Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

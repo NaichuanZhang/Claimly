@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #faf8f5;
+  --color-bg-warm: #f3ede5;
+  --color-bg-card: #ffffff;
+  --color-bg-user: #0d3b3b;
+  --color-border: #e4dbd0;
+  --color-border-focus: #0d7373;
+  --color-text: #1a1a1a;
+  --color-text-muted: #5c5650;
+  --color-text-dim: #9b9088;
+  --color-text-on-dark: #f0ebe5;
+  --color-teal: #0d7373;
+  --color-teal-light: #e6f4f1;
+  --color-teal-glow: rgba(13, 115, 115, 0.06);
+  --color-coral: #d4654a;
+  --color-green: #2d8a5e;
+  --color-green-light: #e8f5ee;
+  --color-red: #c0392b;
+  --color-red-light: #fce8e6;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
+
+/* Markdown prose */
+.prose-agent h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--color-teal);
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.prose-agent h3:first-child {
+  margin-top: 0;
+}
+
+.prose-agent p {
+  margin: 0.5rem 0;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.prose-agent ul,
+.prose-agent ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.prose-agent li {
+  margin: 0.3rem 0;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.prose-agent li::marker {
+  color: var(--color-teal);
+}
+
+.prose-agent strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.prose-agent code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  background: var(--color-bg-warm);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  color: var(--color-teal);
+}
+
+/* Verdict badges */
+.verdict-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  border-radius: 99px;
+  background: var(--color-green-light);
+  color: var(--color-green);
+  border: 1px solid rgba(45, 138, 94, 0.2);
+}
+
+.verdict-dont-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  border-radius: 99px;
+  background: var(--color-red-light);
+  color: var(--color-red);
+  border: 1px solid rgba(192, 57, 43, 0.2);
+}
+
+/* Streaming indicator */
+@keyframes breathe {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.streaming-dot span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-teal);
+  margin-right: 5px;
+  animation: breathe 1.6s infinite ease-in-out;
+}
+
+.streaming-dot span:nth-child(2) { animation-delay: 0.25s; }
+.streaming-dot span:nth-child(3) { animation-delay: 0.5s; }
+
+/* Drop zone */
+.drop-active {
+  border-color: var(--color-teal) !important;
+  background: var(--color-teal-glow) !important;
+}
+
+/* Message entrance */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-enter {
+  animation: fade-up 0.3s ease-out;
+}
