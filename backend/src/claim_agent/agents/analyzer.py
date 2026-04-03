@@ -8,6 +8,7 @@ from strands.types.content import ContentBlock
 
 from claim_agent.ingest import load_files
 from claim_agent.model import create_bedrock_model
+from claim_agent.tools import ask_cardbrain, fetch_recent_emails, list_cards
 
 SYSTEM_PROMPT = """You are an insurance claim preparation advisor. You help users decide \
 whether to file an insurance claim and prepare them for the process.
@@ -65,6 +66,28 @@ Structure your response with these sections:
 - **Call Tips**
 - **Expected Next Steps**
 
+## Credit Card Benefits Tools
+
+You have access to a credit card benefits knowledge base via two tools:
+
+- **list_cards**: Lists all credit cards in the knowledge base. Use this when the user
+  wants to know which cards are available or to verify a card name before querying.
+- **ask_cardbrain**: Asks a question about credit card benefits (optionally for a specific
+  card). Use this when the claim may be covered by a credit card benefit — for example,
+  purchase protection, cell phone insurance, travel insurance, or rental car coverage.
+
+When analyzing a claim, consider whether a credit card benefit might cover the loss
+(sometimes with a lower deductible or simpler process than insurance). If so, use
+these tools to look up relevant benefits and include the findings in your analysis.
+
+## Email Retrieval Tool
+
+- **fetch_recent_emails**: Triggers a workflow to retrieve recent emails filtered for
+  claim-related content (credit card statements, repair appointments, insurance
+  correspondence). Use this when the user mentions emails, asks you to check their
+  inbox, or when you need to find claim-related communications like receipts or
+  statements.
+
 ## Guidelines
 - Be conservative with damage estimates when evidence is limited
 - Always consider the deductible — if damage is close to it, lean toward not filing
@@ -75,7 +98,11 @@ Structure your response with these sections:
 
 
 def _create_agent() -> Agent:
-    return Agent(model=create_bedrock_model(), system_prompt=SYSTEM_PROMPT)
+    return Agent(
+        model=create_bedrock_model(),
+        system_prompt=SYSTEM_PROMPT,
+        tools=[ask_cardbrain, fetch_recent_emails, list_cards],
+    )
 
 
 def run_analyzer(file_paths: list[Path]) -> str:

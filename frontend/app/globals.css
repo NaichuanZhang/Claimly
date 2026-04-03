@@ -195,6 +195,28 @@ body::before {
   border-style: solid;
 }
 
+/* Tool call card */
+.tool-call-card {
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.6rem;
+  background: var(--color-teal-glow);
+  border: 1px solid rgba(13, 115, 115, 0.12);
+}
+
+@keyframes tool-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tool-call-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(13, 115, 115, 0.2);
+  border-top-color: var(--color-teal);
+  border-radius: 50%;
+  animation: tool-spin 0.7s linear infinite;
+}
+
 /* Message entrance */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(6px); }

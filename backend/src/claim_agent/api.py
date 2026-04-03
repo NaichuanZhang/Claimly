@@ -12,6 +12,7 @@ from claim_agent.agents.analyzer import stream_analyzer
 from claim_agent.ingest import from_data_url
 
 logger = logging.getLogger("claim_agent.api")
+logging.getLogger("opentelemetry").setLevel(logging.ERROR)
 
 app = FastAPI(title="Claim Agent API")
 
@@ -62,31 +63,86 @@ async def chat(request: Request):
         content_blocks = [{"text": "Hello, I need help with an insurance claim."}]
 
     message_id = str(uuid.uuid4())
-    text_part_id = str(uuid.uuid4())
 
     async def generate():
         yield _sse({"type": "start", "messageId": message_id})
-        yield _sse({"type": "text-start", "id": text_part_id})
+
+        text_part_id: str | None = None
+        text_part_open = False
+        active_tool_id: str | None = None
+        active_tool_input: dict = {}
+
+        def _open_text():
+            nonlocal text_part_id, text_part_open
+            text_part_id = str(uuid.uuid4())
+            text_part_open = True
+            return _sse({"type": "text-start", "id": text_part_id})
+
+        def _close_text():
+            nonlocal text_part_open
+            text_part_open = False
+            return _sse({"type": "text-end", "id": text_part_id})
 
         try:
             async for event in stream_analyzer(content_blocks):
-                if "data" in event:
-                    text = event["data"]
-                    if text:
+                if not isinstance(event, dict):
+                    continue
+
+                # --- tool use events ---
+                if "current_tool_use" in event:
+                    tool_use = event["current_tool_use"]
+                    tool_id = tool_use.get("toolUseId")
+                    tool_name = tool_use.get("name")
+
+                    if tool_name and tool_id and tool_id != active_tool_id:
+                        # close open text part before tool card
+                        if text_part_open:
+                            yield _close_text()
+
+                        # finalize previous tool if still open
+                        if active_tool_id:
+                            yield _sse({"type": "tool-output-available", "toolCallId": active_tool_id, "output": "Done"})
+
+                        active_tool_id = tool_id
+                        active_tool_input = tool_use.get("input") or {}
+                        yield _sse({"type": "tool-input-start", "toolCallId": tool_id, "toolName": tool_name})
                         yield _sse({
-                            "type": "text-delta",
-                            "id": text_part_id,
-                            "delta": str(text),
+                            "type": "tool-input-delta",
+                            "toolCallId": tool_id,
+                            "inputTextDelta": json.dumps(active_tool_input),
                         })
+
+                    elif tool_id == active_tool_id and isinstance(tool_use.get("input"), dict):
+                        active_tool_input = {**active_tool_input, **tool_use["input"]}
+
+                # --- text delta events ---
+                elif "data" in event:
+                    text = event["data"]
+                    if not text:
+                        continue
+
+                    # finalize tool call before resuming text
+                    if active_tool_id:
+                        yield _sse({"type": "tool-output-available", "toolCallId": active_tool_id, "output": "Done"})
+                        active_tool_id = None
+
+                    if not text_part_open:
+                        yield _open_text()
+
+                    yield _sse({"type": "text-delta", "id": text_part_id, "delta": str(text)})
+
         except Exception as e:
             logger.exception("Agent streaming error")
-            yield _sse({
-                "type": "text-delta",
-                "id": text_part_id,
-                "delta": f"\n\n**Error**: {e}",
-            })
+            if not text_part_open:
+                yield _open_text()
+            yield _sse({"type": "text-delta", "id": text_part_id, "delta": f"\n\n**Error**: {e}"})
 
-        yield _sse({"type": "text-end", "id": text_part_id})
+        # clean up open parts
+        if active_tool_id:
+            yield _sse({"type": "tool-output-available", "toolCallId": active_tool_id, "output": "Done"})
+        if text_part_open:
+            yield _close_text()
+
         yield _sse({"type": "finish"})
         yield "data: [DONE]\n\n"
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { UIMessage } from "ai";
+import { isToolUIPart } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -135,6 +136,18 @@ function Message({
             );
           }
 
+          if (isToolUIPart(part)) {
+            const toolName = part.type.replace(/^tool-/, "");
+            return (
+              <ToolCallCard
+                key={index}
+                toolName={toolName}
+                input={part.input as Record<string, unknown> | undefined}
+                state={part.state}
+              />
+            );
+          }
+
           return null;
         })}
 
@@ -148,6 +161,68 @@ function Message({
         )}
       </div>
     </div>
+  );
+}
+
+const TOOL_LABELS: Record<string, { label: string; icon: string }> = {
+  ask_cardbrain: { label: "Searching card benefits", icon: "search" },
+  list_cards: { label: "Listing available cards", icon: "list" },
+};
+
+function ToolCallCard({
+  toolName,
+  input,
+  state,
+}: {
+  toolName: string;
+  input: Record<string, unknown> | undefined;
+  state: string;
+}) {
+  const done = state === "output-available" || state === "output-error";
+  const meta = TOOL_LABELS[toolName] ?? { label: toolName, icon: "tool" };
+
+  const summary = input
+    ? Object.entries(input)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(", ")
+    : null;
+
+  return (
+    <div className="tool-call-card my-3">
+      <div className="flex items-center gap-2">
+        {done ? (
+          <CheckIcon />
+        ) : (
+          <span className="tool-call-spinner" />
+        )}
+        <span className="text-xs font-semibold tracking-wide text-[var(--color-teal)]">
+          {meta.label}
+        </span>
+      </div>
+      {summary && (
+        <p className="mt-1 ml-6 text-[11px] text-[var(--color-text-dim)] leading-relaxed truncate">
+          {summary}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--color-green)"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }
 

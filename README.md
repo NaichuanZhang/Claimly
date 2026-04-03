@@ -2,6 +2,8 @@
 
 **File your claim, calmly.** An AI-powered insurance claim preparation agent that helps you decide whether to file a claim and prepares you for the call.
 
+![Claimly screenshot](docs/screenshot.png)
+
 ## What it does
 
 Upload your policy documents, damage photos, or receipts. Claimly analyzes everything and gives you:
@@ -13,17 +15,71 @@ Upload your policy documents, damage photos, or receipts. Claimly analyzes every
 
 ## Architecture
 
+```mermaid
+graph LR
+    subgraph Frontend ["Frontend (Next.js :3000)"]
+        UI["Chat UI\nAI SDK v6 useChat"]
+        Upload["File Upload\ndrag & drop → base64"]
+    end
+
+    subgraph Backend ["Backend (FastAPI :8000)"]
+        API["/api/chat\nSSE endpoint"]
+        Ingest["Ingest\nbase64 → ContentBlock"]
+        Agent["Strands Agent\nClaude Sonnet via Bedrock"]
+    end
+
+    subgraph Tools ["External Tools"]
+        CardBrain["CardBrain API\nCredit card benefits"]
+        N8N["n8n Workflow\nGmail email retrieval"]
+    end
+
+    UI -- "POST /api/chat" --> API
+    Upload -- "base64 files" --> API
+    API --> Ingest --> Agent
+    Agent -. "SSE stream" .-> UI
+    Agent -- "tool call" --> CardBrain
+    Agent -- "tool call" --> N8N
 ```
-Frontend (Next.js :3000)          Backend (FastAPI :8000)
-┌─────────────────────┐          ┌──────────────────────┐
-│ Chat UI (AI SDK v6) │──POST──> │ /api/chat            │
-│ File upload → base64│          │ Decode → ContentBlock │
-│ SSE stream render   │<──SSE──  │ Strands agent.stream  │
-└─────────────────────┘          └──────────────────────┘
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Next as Next.js Frontend
+    participant FastAPI as FastAPI Backend
+    participant Agent as Strands Agent
+    participant Bedrock as AWS Bedrock<br/>(Claude Sonnet)
+    participant CB as CardBrain API
+    participant N8N as n8n Workflow<br/>(Gmail)
+
+    User->>Next: Upload files + describe claim
+    Next->>FastAPI: POST /api/chat (messages + base64 files)
+    FastAPI->>FastAPI: Decode files → ContentBlocks
+    FastAPI->>Agent: stream_analyzer(content_blocks)
+    Agent->>Bedrock: Prompt + documents
+
+    alt Agent needs credit card info
+        Bedrock-->>Agent: tool_call: ask_cardbrain
+        Agent->>CB: POST /api/ask
+        CB-->>Agent: Card benefits data
+    end
+
+    alt Agent needs email context
+        Bedrock-->>Agent: tool_call: fetch_recent_emails
+        Agent->>N8N: GET /webhook/{id}
+        N8N-->>Agent: Filtered Gmail emails
+    end
+
+    Bedrock-->>Agent: Analysis + recommendation
+    Agent-->>FastAPI: Stream events
+    FastAPI-->>Next: SSE (AI SDK protocol)
+    Next-->>User: Rendered markdown response
 ```
 
 - **Frontend**: Next.js 15 App Router + AI SDK `useChat` + Tailwind CSS v4
 - **Backend**: Python FastAPI + [Strands Agents SDK](https://github.com/strands-agents/sdk-python) + AWS Bedrock (Claude Sonnet)
+- **Tools**: CardBrain (credit card benefits lookup), n8n workflow (Gmail email retrieval)
 - **Protocol**: AI SDK UI Message Stream Protocol over SSE
 
 ## Quick start
@@ -78,6 +134,9 @@ claim-agent/
       config.py           # Environment config
       model.py            # Bedrock model factory
       ingest.py           # File → ContentBlock conversion
+      tools/
+        cardbrain.py      # Credit card benefits tools
+        n8n_email.py      # Email retrieval via n8n workflow
       agents/
         analyzer.py       # Claim analysis agent
     tests/
