@@ -2,7 +2,13 @@
 
 **File your claim, calmly.** An AI-powered insurance claim preparation agent that helps you decide whether to file a claim and prepares you for the call.
 
-![Claimly screenshot](docs/screenshot.png)
+| Landing Page | Claim Analysis |
+|:---:|:---:|
+| ![Landing page](docs/landing-page.png) | ![Claim analysis](docs/screenshot.png) |
+
+| n8n Email Workflow | Discord Notifications |
+|:---:|:---:|
+| ![n8n workflow](docs/n8n-workflow.png) | ![Discord notification](docs/discord-notification.png) |
 
 ## What it does
 
